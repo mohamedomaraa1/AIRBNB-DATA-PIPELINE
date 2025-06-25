@@ -1,0 +1,13 @@
+# Ignore virtual environments
+venv/
+.env/
+
+# Ignore dbt artifacts
+target/
+dbt_packages/
+.dbt/
+
+# Python cache
+_pycache_/
+*.pyc
+
