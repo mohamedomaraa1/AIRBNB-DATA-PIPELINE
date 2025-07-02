@@ -1,15 +1,44 @@
-Welcome to your new dbt project!
+# 🏡 Airbnb Analytics Data Pipeline
 
-### Using the starter project
+This is an end-to-end ELT pipeline that processes Airbnb listings, cleans the data using dbt, stores it in Snowflake, visualizes it in Preset (Superset), and orchestrates everything using Dagster.
 
-Try running the following commands:
-- dbt run
-- dbt test
+---
 
+## 🛠️ Tech Stack
 
-### Resources:
-- Learn more about dbt [in the docs](https://docs.getdbt.com/docs/introduction)
-- Check out [Discourse](https://discourse.getdbt.com/) for commonly asked questions and answers
-- Join the [chat](https://community.getdbt.com/) on Slack for live discussions and support
-- Find [dbt events](https://events.getdbt.com) near you
-- Check out [the blog](https://blog.getdbt.com/) for the latest news on dbt's development and best practices
+- **Snowflake** – Cloud data warehouse
+- **dbt** – SQL-based transformations and testing
+- **Preset (Superset)** – BI dashboarding
+- **Dagster** – Data orchestration and asset materialization
+- **Python** – For orchestration code
+
+---
+
+## 🔁 Pipeline Overview
+
+```mermaid
+graph TD
+    A[Raw Airbnb CSV] --> B[Snowflake]
+    B --> C[dbt Models]
+    C --> D[Dagster Assets]
+    D --> E[Preset Dashboards]
+---
+
+## Preset Dashboard 
+![dbt](<assets/DASHBOARD.png>)
+---
+
+## Dbt Lineage
+![dbt](<assets/lineageGraph.PNG>)
+---
+
+## Dagster
+![dbt](<assets/dagster.PNG>)
+---
+
+## 🔗 Connect with Me  
+<p align="center">
+  <a href="www.linkedin.com/in/mohamed-omara-a93b972b5">
+    <img src="https://img.shields.io/badge/LinkedIn-MohamedOmara-0077B5?style=for-the-badge&logo=linkedin&logoColor=white">
+  </a>
+</p>
