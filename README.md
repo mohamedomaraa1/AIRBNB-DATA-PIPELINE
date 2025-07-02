@@ -14,16 +14,6 @@ This is an end-to-end ELT pipeline that processes Airbnb listings, cleans the da
 
 ---
 
-## 🔁 Pipeline Overview
-
-```mermaid
-graph TD
-    A[Raw Airbnb CSV] --> B[Snowflake]
-    B --> C[dbt Models]
-    C --> D[Dagster Assets]
-    D --> E[Preset Dashboards]
----
-
 ## Preset Dashboard 
 ![dbt](<assets/DASHBOARD.png>)
 ---
