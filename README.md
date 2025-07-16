@@ -1,195 +1,187 @@
-🔧 1. Project Objective
-The goal of this project is to build a complete modern data pipeline for Airbnb data, using industry tools like:
+# Airbnb Data Pipeline Project (Snowflake + dbt + Orchestration)
 
-Snowflake (cloud data warehouse)
+## 🔧 Project Objective
 
-dbt (transformations, testing, documentation)
+This project builds a complete modern data pipeline for Airbnb data using industry tools:
 
-Airflow or Dagster (workflow orchestration)
+* **Snowflake**: Cloud data warehouse
+* **dbt**: Data transformation, testing, documentation
+* **Airflow or Dagster**: Orchestration
+* **Preset (Superset)**: Data visualization
 
-Preset (Superset) (data visualization)
+The pipeline covers listings, hosts, and reviews data across raw, cleansed, and analytical layers.
 
-and optionally PostgreSQL for local experimentation.
+---
 
-The data includes listings, hosts, and reviews, and we clean, transform, test, and analyze them following best practices like the Medallion Architecture (Bronze → Silver → Gold).
+## 🏐 Snowflake Setup
 
-🏗️ 2. Snowflake Setup
-Before working with data, we need to set up Snowflake:
+1. **Create Roles and Users**:
 
-Create a user and assign it a role with permission to read/write data and run queries.
+   * Create a `TRANSFORM` role
+   * Create a user named `dbt` and assign it to the role
 
-Create a warehouse (the compute engine in Snowflake) and give it access to the role.
+2. **Warehouse**:
 
-Create a database called AIRBNB with a RAW schema to store the raw data.
+   * Create `COMPUTE_WH` as the compute engine
+   * Grant usage and operate permissions to the `TRANSFORM` role
 
-This step ensures we have:
+3. **Database and Schema**:
 
-A user to log in and run transformations (e.g., named dbt)
+   * Create a database `AIRBNB`
+   * Create schema `RAW` to hold raw data
 
-Permissions properly set up
+4. **Grants**:
 
-A place to store and organize the data
+   * Grant necessary access on the database, schemas, and tables to the `TRANSFORM` role
 
-☁️ 3. Upload Raw Data to Snowflake
-After Snowflake is ready, we load the raw Airbnb CSV files into the RAW schema from an Amazon S3 bucket.
+---
 
-We create three raw tables:
+## ☁️ Data Import to Snowflake
 
-raw_listings — Contains property listings
+1. Load CSVs from S3 into Snowflake:
 
-raw_reviews — User reviews and sentiment
+   * `raw_listings`: Property listings
+   * `raw_reviews`: User reviews
+   * `raw_hosts`: Host details
 
-raw_hosts — Host details
+2. These tables form the **Bronze (Raw)** layer.
 
-These tables represent the Bronze layer (raw ingestion) in the data lakehouse or warehouse.
+---
 
-🐍 4. Python & dbt Setup
-We use Python virtual environments to isolate our dependencies, and install dbt-snowflake, a tool that lets us:
+## 🚀 Python, Virtualenv & dbt Setup
 
-Transform data
+1. Install Python 3.10+ and create a virtual environment:
 
-Build models
+   ```bash
+   virtualenv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-Run tests
+2. Install dbt:
 
-Generate documentation
+   ```bash
+   pip install dbt-snowflake==1.9.0
+   ```
 
-Once dbt is installed:
+3. Initialize a dbt project:
 
-We initialize a dbt project (e.g., dbtlearn)
+   ```bash
+   dbt init dbtlearn
+   ```
 
-Configure a profiles.yml file to connect dbt to Snowflake using the previously created credentials
+4. Set up your Snowflake profile in `~/.dbt/profiles.yml`
 
-🏗️ 5. dbt Models: Transformation Layers
-We organize our models in 3 levels, reflecting the Medallion Architecture:
+---
 
-A. Staging (SRC) Models:
-These are thin models that load data from raw tables as-is but rename columns or fix simple formats.
-Examples: src_hosts, src_listings, src_reviews
+## 📈 dbt Models
 
-B. Cleansed Dimensions (DIM):
-These models apply data cleaning, transformation, and normalization.
-Examples:
+### 1. Staging Models (SRC)
 
-dim_hosts_cleansed replaces missing names with "Anonymous"
+* Thin layers to clean column names and formats
+* Examples: `src_hosts`, `src_reviews`, `src_listings`
 
-dim_listings_cleansed converts prices and filters bad rows
+### 2. Cleansed Dimension Models (DIM)
 
-C. Facts (FCT) & Marts:
-fct_reviews is a fact table that stores review data, possibly as incremental loads.
+* Clean, deduplicate, and enrich the data
+* Example transformations:
 
-dim_listings_w_hosts is a mart (business-friendly table) joining listings with hosts, ready for analytics.
+  * Replace nulls in host names with "Anonymous"
+  * Convert price to numeric
+  * Ensure `minimum_nights` is at least 1
 
-📸 6. Snapshots
-Snapshots are used to track slowly changing data (e.g., if a listing updates its minimum nights or host info changes).
+### 3. Fact Tables and Marts
 
-A snapshot compares the current row in a source table with the previous version
+* `fct_reviews`: Fact table for reviews, supports incremental loads
+* `dim_listings_w_hosts`: Join listings with host info for analytics
 
-It stores the history of changes
+---
 
-Useful for audit, time-travel, and reporting on historical trends
+## 📊 Snapshots
 
-✅ 7. Tests
-We add tests to ensure data quality:
+* Use snapshots to track changes over time (SCDs)
+* Useful for fields like `minimum_nights`, host status, etc.
+* Stored in the `DEV` schema
 
-Generic tests:
+---
 
-not_null
+## ✅ Testing
 
-unique
+### Generic Tests:
 
-relationships between tables (e.g., host_id in listings exists in host table)
+* `not_null`, `unique`, `relationships`, `accepted_values`
 
-Custom tests:
+### Custom Tests:
 
-Checking if minimum_nights is positive
+* Ensure `minimum_nights >= 1`
+* Ensure no review is before the listing creation date
 
-Making sure reviews don't occur before a listing is created
+Tests are defined in `schema.yml` or custom SQL in `tests/` folder.
 
-These tests help you catch bad data and enforce integrity.
+---
 
-🧪 8. Seeds
-Seeds are CSV files manually added to the repo. In this project, we use:
+## 📃 Seeds
 
-A CSV of full moon dates to analyze sentiment on full moon nights
+* CSV files placed in `seeds/`
+* Example: `seed_full_moon_dates.csv`
+* Loaded using `dbt seed`
+* Used to enhance analysis by joining with review dates
 
-We load these into Snowflake and join with the reviews table to create a new mart table showing whether a review happened during a full moon.
+---
 
-📚 9. Documentation
-dbt lets us document everything:
+## 📖 Documentation
 
-What each model does
+* Generated with `dbt docs generate && dbt docs serve`
+* Documents:
 
-What each column means
+  * Models and their purpose
+  * Column descriptions
+  * Test coverage
+  * Lineage graphs
 
-Lineage: how models depend on each other
+---
 
-Tests and their status
+## ⏳ Incremental Models
 
-We generate this with dbt docs generate and view it locally or host it.
+* Used for large tables like `fct_reviews`
+* Only process new records since the last run
+* Supports custom date ranges using variables:
 
-🔁 10. Incremental Models
-Some models, like fct_reviews, are incremental:
+  ```bash
+  dbt run --select fct_reviews --vars '{start_date: "YYYY-MM-DD", end_date: "YYYY-MM-DD"}'
+  ```
 
-They only load new data since the last run
+---
 
-This speeds up dbt and avoids reprocessing old records
+## 🚜 Orchestration (Airflow or Dagster)
 
-We can define conditions like: load data where review_date > max date in the table.
+* Schedule tasks to:
 
-We can also pass custom date ranges using dbt vars.
+  * Run `dbt run`, `dbt test`, and `dbt docs`
+  * Load API or external data
+  * Trigger snapshots
 
-🕹️ 11. Orchestration: Airflow or Dagster
-We use Airflow or Dagster to schedule and automate the pipeline.
+* Tools like **Airflow**, **Dagster**, or **dbt Cloud** automate the pipeline
 
-Typical tasks:
+---
 
-Run dbt run
+## 📊 Exposures and Preset Dashboard
 
-Run dbt test
+1. Create `REPORTER` role and assign it to `PRESET` user
+2. Grant `SELECT` access to final models in `AIRBNB.DEV`
+3. Define `exposures` in dbt to track which dashboards depend on which models
 
-Load API data to PostgreSQL or Snowflake
+---
 
-Trigger snapshots or dashboards
+## 💼 Summary
 
-Airflow lets us use Python and operators like BashOperator, PythonOperator, DbtRunOperator, and more.
+This project implements a full-stack data pipeline with:
 
-📈 12. Exposures & Dashboarding
-We use exposures in dbt to define which models power dashboards.
+* Snowflake as the warehouse
+* dbt for modeling, testing, and snapshots
+* Orchestration using Airflow or Dagster
+* Visualization via Superset/Preset
 
-This is useful for:
-
-Showing dependencies
-
-Alerting if upstream data breaks the dashboard
-
-Documenting which stakeholder uses which model
-
-We connect tools like Preset/Superset to Snowflake and create dashboards on top of models like:
-
-dim_listings_w_hosts
-
-mart_fullmoon_reviews
-
-
-🎓 Summary
-This project is a full-stack example of a production-grade data pipeline that covers:
-
-Data ingestion
-
-Modeling with dbt
-
-Testing & documentation
-
-Incremental processing
-
-Snapshots
-
-Visualization & security
-
-Automation with orchestration
-
-It’s an excellent end-to-end case study of modern data engineering in action.
+It follows best practices with modular models, testing, security, and documentation for modern data engineering.
 
 ## Preset Dashboard 
 ![dbt](<assets/DASHBOARD.png>)
@@ -205,7 +197,7 @@ It’s an excellent end-to-end case study of modern data engineering in action.
 
 ## 🔗 Connect with Me  
 <p align="center">
-  <a href="www.linkedin.com/in/mohamed-omara-a93b972b5">
-    <img src="https://img.shields.io/badge/LinkedIn-MohamedOmara-0077B5?style=for-the-badge&logo=linkedin&logoColor=white">
-  </a>
+<a href="www.linkedin.com/in/mohamed-omara-a93b972b5">
+<img src="https://img.shields.io/badge/LinkedIn-MohamedOmara-0077B5?style=for-the-badge&logo=linkedin&logoColor=white">
+</a>
 </p>
